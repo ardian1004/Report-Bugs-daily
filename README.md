@@ -1,157 +1,156 @@
-QA Bug Report Portfolio
-Service Unavailable pada Generate EskaDB Mobile walaupun Backend Process Success
+Service Unavailable During Generate EskaDB Mobile Despite Successful Backend Processing
 Project Overview
-Application
-
-EskaLink Mobile – Generate EskaDB Module
-
-Testing Type
-Functional Testing
-API/Network Testing
-Backend Validation
-Error Handling Testing
-Testing Environment
 Item	Detail
+Application	EskaLink Mobile – Generate EskaDB Module
+Testing Type	Functional Testing, API/Network Testing, Backend Validation, Error Handling Testing
+Environment	Production / Staging
 OS	Windows 11
 Browser	Google Chrome
-Module	Jobs Generate EskaDB
-Environment	Production/Staging
-Tools	Chrome DevTools, Network Inspect
-Bug Summary
+Tools Used	Chrome DevTools, Network Inspector
+Issue Summary
 
-Saat user menjalankan proses Generate EskaDB Mobile, proses backend sebenarnya berhasil dijalankan dan data berhasil dibuat/upload. Namun pada sisi UI aplikasi muncul popup:
+During the Generate EskaDB Mobile process, the backend successfully completed all processing activities, including file generation and upload. However, the frontend displayed a popup error:
 
 Service Unavailable
 
-Berdasarkan hasil investigasi:
+Investigation showed that:
 
-Backend process completed successfully
-UI menerima response HTTP 503
-Error terjadi karena execution process melebihi limit PHP execution time
+Backend processing completed successfully
+Data generation and upload were successful
+Frontend received an HTTP 503 Service Unavailable
+The issue occurred because the execution time exceeded the configured PHP server timeout limit
 Severity & Priority
-Type	Value
+Category	Level
 Severity	High
 Priority	High
 Reason
 
-Walaupun data berhasil diproses di backend, user menganggap proses gagal karena UI menampilkan error.
+Although the backend process completed successfully, users perceived the process as failed because the UI displayed an error message.
 
-Dampak:
-
-Menyebabkan misleading information kepada user
-Potensi duplicate execution karena user retry
-Menurunkan trust terhadap sistem
+Potential Impact
+Misleading information for users
+Risk of duplicate execution due to repeated retries
+Reduced user trust in the system
 Preconditions
-User berhasil login ke aplikasi EskaLink
-User memiliki akses Generate EskaDB
-Server dalam kondisi normal
+
+Before reproducing the issue:
+
+User is logged in to EskaLink
+User has access to the Generate EskaDB feature
+Server is running normally
 Steps to Reproduce
-1. Login ke aplikasi EskaLink
-2. Masuk ke menu Generate EskaDB
-3. Jalankan proses generate database mobile
-4. Tunggu proses selesai
-5. Observe hasil response pada UI
+Login to the EskaLink application
+Navigate to the Generate EskaDB menu
+Start the mobile database generation process
+Wait for the process to complete
+Observe the response shown in the UI
 Expected Result
-Setelah proses backend selesai:
-- UI menampilkan status SUCCESS
-- Tidak muncul popup error
-- User mendapatkan notifikasi proses berhasil
+
+After backend processing is completed:
+
+UI should display a SUCCESS status
+No error popup should appear
+User should receive a successful completion notification
 Actual Result
-UI menampilkan popup:
-"Service Unavailable"
 
-Namun pada backend:
-- File berhasil dibuat
-- Upload berhasil dilakukan
-- Log process status SUCCESS
-Evidence
-Screenshot UI Error
-
-Menampilkan popup:
+Frontend displayed the following popup:
 
 Service Unavailable
 
-Observasi:
+However, backend validation confirmed:
 
-Backend log menunjukkan proses selesai
-Upload log sukses
-Screenshot Network Inspect
+File generation completed successfully
+Upload process completed successfully
+Backend logs showed process status as SUCCESS
+Evidence & Findings
+UI Error Observation
 
-Hasil inspect browser:
+The application displayed:
 
-HTTP Status: 503 Service Unavailable
-XHR Request Failed
+Service Unavailable
 
-Endpoint:
+Additional Findings
+Backend logs confirmed successful execution
+Upload logs showed successful completion
+Network Inspection Result
 
-jobs_generate
-Technical Investigation
-Initial Analysis
-
-Ditemukan bahwa:
-
-Proses backend membutuhkan waktu cukup lama
-Request frontend timeout sebelum backend selesai memberikan response
-Troubleshooting Performed
-1. Modify Controller Timeout
-
-File:
-
-AutoGenDataController.php
-
-Action:
-
-set_time_limit(...)
-
-Result:
-
-Issue masih terjadi
-2. Network Inspection
-
-Menggunakan:
+Using:
 
 Chrome DevTools → Network → Fetch/XHR
 
-Findings:
+Findings
+Item	Result
+HTTP Status	503 Service Unavailable
+Request Type	XHR Request Failed
+Endpoint	jobs_generate
+Technical Investigation
+Initial Analysis
 
-Status Code: 503 Service Unavailable
+The backend process required a relatively long execution time.
+
+As a result:
+
+The backend continued processing normally
+Frontend request timed out before receiving the final response
+Troubleshooting Performed
+1. Controller Timeout Adjustment
+
+File:
+AutoGenDataController.php
+
+Action:
+Implemented:
+
+set_time_limit(...)
+Result
+
+Issue still occurred.
+
+2. Network Inspection
+
+Using Chrome DevTools Network Inspector.
+
+Findings
+HTTP 503 Service Unavailable
 3. Root Cause Analysis
 
-Kesimpulan:
+The root cause was identified as:
 
-PHP max_execution_time pada server terlalu kecil
+PHP max_execution_time configuration on the server was too low for the processing duration required by Generate EskaDB.
 
-Backend process:
+Because of this:
 
-tetap berjalan
-tetapi request frontend timeout terlebih dahulu
+Backend processing continued running
+Frontend timed out earlier and received HTTP 503
 Final Resolution
 
-Dilakukan perubahan konfigurasi server PHP:
+Server-side PHP configuration was updated:
 
 max_execution_time = <higher value>
-
-Setelah adjustment:
-
-Process Generate EskaDB berjalan normal
-UI tidak lagi menampilkan error
-Response berhasil diterima frontend
+After Configuration Adjustment
+Generate EskaDB process executed normally
+Frontend successfully received response
+No more “Service Unavailable” popup appeared
+User experience returned to normal
 Root Cause
-Server-side PHP execution timeout menyebabkan frontend menerima response 503 sebelum backend process selesai.
+
+Server-side PHP execution timeout caused the frontend request to terminate early and return HTTP 503 before backend processing completed.
+
 QA Analysis
 Impact Analysis
-Impact	Description
-User Experience	User mengira proses gagal
-System Reliability	Menimbulkan duplicate retry
-Operational Risk	Potensi generate data berulang
-Recommendation
-Short Term
+Impact Area	Description
+User Experience	Users assumed the process failed
+System Reliability	Potential duplicate retries by users
+Operational Risk	Risk of repeated database generation
+Recommendations
+Short-Term Improvements
 Increase PHP execution timeout
-Improve error handling UI
-Long Term
-Recommended Improvements:
-Implement async/background job processing
-Add loading progress indicator
-Implement polling mechanism
-Add proper success callback response
-Add timeout warning handling
+Improve frontend error handling
+Display clearer processing status to users
+Long-Term Improvements
+Recommended Enhancements
+Implement asynchronous/background job processing
+Add real-time loading or progress indicators
+Implement polling mechanism for job status updates
+Add proper success callback responses
+Implement timeout warning and recovery handling
